@@ -1,13 +1,9 @@
-import pandas as pd
 import csv
 import re
 import unicodedata
 from collections import Counter, defaultdict
 from datetime import date, datetime
 from pathlib import Path
-
-df = pd.read_csv("ARCHIVOS/online-a_04-06-2026 19-25-50-003091_V1.csv", encoding="utf-8-sig")
-df.columns
 
 
 CSV_PATHS = [
