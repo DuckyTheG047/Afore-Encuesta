@@ -4,6 +4,7 @@ import re
 import unicodedata
 from collections import Counter, defaultdict
 from datetime import date, datetime
+from pathlib import Path
 
 df = pd.read_csv("ARCHIVOS/online-a_04-06-2026 19-25-50-003091_V1.csv", encoding="utf-8-sig")
 df.columns
@@ -18,9 +19,23 @@ PREGUNTA_2 = "¿Qué producto crees que promociona la imagen del siguiente anunc
 PREGUNTA_3 = "¿Qué producto crees que promociona la imagen del siguiente anuncio? 2"
 PREGUNTA_4 = "¿Qué te comunica el anuncio anterior?"
 PREGUNTA_5 = "¿Qué te comunica el anuncio anterior? 1"
+PREGUNTA_6 = "¿Qué te comunica el anuncio anterior? 2"
+PREGUNTA_7 = "¿Qué te comunica el anuncio anterior? 3"
+PREGUNTA_8 = "¿Qué te comunica el anuncio anterior? 4"
+PREGUNTA_9 = "¿Qué te comunica el anuncio anterior? 5"
+PREGUNTA_10 = "¿Qué te comunica el anuncio anterior? 6"
+PREGUNTA_11 = "¿Qué te comunica el anuncio anterior? 7"
 PREGUNTA_CONEXION_1 = "¿Qué tanto conectó contigo? (out of 5)"
 PREGUNTA_CONEXION_2 = "¿Qué tanto conectó contigo? (out of 5) 1"
 PREGUNTA_CONEXION_3 = "¿Qué tanto conectó contigo? (out of 5) 2"
+PREGUNTA_CONEXION_4 = "¿Qué tanto conectó contigo? (out of 5) 3"
+PREGUNTA_CONEXION_5 = "¿Qué tanto conectó contigo? (out of 5) 4"
+PREGUNTA_CONEXION_6 = "¿Qué tanto conectó contigo? (out of 5) 5"
+PREGUNTA_CONEXION_7 = "¿Qué tanto conectó contigo? (out of 5) 6"
+PREGUNTA_CONEXION_8 = "¿Qué tanto conectó contigo? (out of 5) 7"
+PREGUNTA_CONFIANZA_AFORE = "¿Qué AFORE te da más confianza? \nEscoge máximo 3 "
+PREGUNTA_CONFIANZA_POR_QUE = "¿Por qué?"
+PREGUNTA_DESCRIPCION_AZTECA = "¿Cuáles son las 3 palabras con las que describirías Afore Azteca?"
 
 # Categorias para preguntas sobre que producto creen que promociona el anuncio.
 CATEGORIAS_PRODUCTO_RAW = {
@@ -70,33 +85,45 @@ CATEGORIAS_PRODUCTO_RAW = {
 CATEGORIAS_COMUNICACION_RAW = {
     "Ahorro / retiro / futuro": """
         ahorro, ahorrar, ahorros, retiro, jubilacion, pension, futuro,
-        vejez, despues de trabajar, ahorro voluntario, tu vejez, afores, afore
+        vejez, despues de trabajar, ahorro voluntario, tu vejez, afores, afore, dinero, ahorre,
+        expectativa, expectativas
     """,
     "Confianza / seguridad / respaldo": """
         confianza, confiable, seguridad, seguro, tranquilidad, respaldo,
         apoyo, protegido, protegida, estable, estabilidad, segura, calidad, bueno, confiado,
-        sonrisa, felicidad, felicidades, inversión, inversion, mejor
+        sonrisa, felicidad, felicidades, inversión, inversion, mejor, claridad, atractivo,
+        interesante, solvente, comprar, poder, oportunidad, empatico, empatia, alentador, confiables,
+        reconocidos, reconocidas
     """,
     "Urgencia / conciencia / tiempo": """
         tiempo, tarde, temprano, ahora, hoy, urgencia, conciencia,
-        no dejarlo al ultimo, antes, despues, aprovechar el tiempo
+        no dejarlo al ultimo, antes, despues, aprovechar el tiempo, prevencion, prevision, esperar,
+        plan, early age, small amounts, retire, retiro, consciencia, no tiene que estar uno estresado,
+        you can still make your contributions
+
     """,
     "Facilidad / accesibilidad": """
         facil, facilidad, sencillo, sencilla, accesible, cambiar,
-        cambiarte, ayuda, sucursales, atencion, acompanamiento, resolver dudas
+        cambiarte, ayuda, sucursales, atencion, acompanamiento, resolver dudas, accesible, 
+        accesibilidad, informativo, disponible, disponibilidad, accessibility, cualquier momento
+
     """,
     "Accion concreta / ahorro voluntario": """
         empezar, comenzar, aportaciones, aportacion, voluntario, voluntarias,
         pesos, invertir, meter dinero, ahorrar desde hoy, mover, mueva, mueva a,
-        cambies, cambiar
+        cambies, cambiar, sugerencia, hacer, haz, haga, hazlo, ahora, esperar, future, cambio
     """,
     "Bienestar / calidad de vida": """
         vivir bien, vida, disfrutar, viajar, libertad financiera, negocio,
-        emprendimiento, tranquilidad futura, calidad de vida, productiva, feliz
+        emprendimiento, tranquilidad futura, calidad de vida, productiva, feliz, yo de mas grande,
+        viaje, viajes, ventas, delicadeza, gusto, tranquilidad, tranquiidad, servicio
     """,
     "Percepcion negativa / confusion": """
         fraude, estafa, inseguridad, miedo, desconfianza, confusion, confuso,
-        cuestionamientos, dudoso, complicado
+        cuestionamientos, dudoso, complicado, confusión, angustia, ansiedad, preocupacion, no me gusto,
+        desenfocado, desenfoque, malo, nada, mala, tristeza, duda, mucho texto, aburrido,
+        malestar, estres, cansancio, indiferencia, indiferente, no termine, no se entiende, no entendi,
+        no esta claro, mal
     """,
 }
 
@@ -106,6 +133,12 @@ MAPA_CATEGORIAS_POR_PREGUNTA = {
     PREGUNTA_3: CATEGORIAS_PRODUCTO_RAW,
     PREGUNTA_4: CATEGORIAS_COMUNICACION_RAW,
     PREGUNTA_5: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_6: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_7: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_8: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_9: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_10: CATEGORIAS_COMUNICACION_RAW,
+    PREGUNTA_11: CATEGORIAS_COMUNICACION_RAW,
 }
 
 MAPA_CONEXION_POR_PREGUNTA = {
@@ -114,6 +147,12 @@ MAPA_CONEXION_POR_PREGUNTA = {
     PREGUNTA_3: PREGUNTA_CONEXION_3,
     PREGUNTA_4: PREGUNTA_CONEXION_1,
     PREGUNTA_5: PREGUNTA_CONEXION_2,
+    PREGUNTA_6: PREGUNTA_CONEXION_3,
+    PREGUNTA_7: PREGUNTA_CONEXION_4,
+    PREGUNTA_8: PREGUNTA_CONEXION_5,
+    PREGUNTA_9: PREGUNTA_CONEXION_6,
+    PREGUNTA_10: PREGUNTA_CONEXION_7,
+    PREGUNTA_11: PREGUNTA_CONEXION_8,
 }
 
 STOPWORDS = {
@@ -122,7 +161,70 @@ STOPWORDS = {
     "su", "sus", "mi", "mis", "tu", "tus", "ya", "o", "si", "no",
     "me", "te", "le", "les", "hay", "muy", "pero", "porque", "que",
     "algun", "alguna", "tipo", "creo", "parece", "hacer", "ponen",
-    "generalmente", "gente", "servicio", "anuncio", "producto"
+    "generalmente", "gente", "servicio", "anuncio", "producto", "son", "otras",
+    "the", "and", "has", "han", "tiene", "that", "lot", "their"
+}
+
+AFORE_MAP = {
+    "image1": "Banamex Afore",
+    "image2": "Afore XXI Banorte",
+    "image3": "Inbursa Afore",
+    "image4": "PENSIONISSSTE",
+    "image5": "Profuturo",
+    "image6": "SURA",
+    "image7": "Principal",
+    "image8": "InverCap Afore",
+    "image9": "Afore Coppel",
+    "image10": "Afore Azteca",
+}
+
+AFORE_LOGO_MAP = {
+    "image1": "AFORES_LOGOS/IMAGEN_1.png",
+    "image2": "AFORES_LOGOS/IMAGEN_2.jpeg",
+    "image3": "AFORES_LOGOS/IMAGEN_3.png",
+    "image4": "AFORES_LOGOS/IMAGEN_4_extracted.png",
+    "image5": "AFORES_LOGOS/IMAGEN_5.webp",
+    "image6": "AFORES_LOGOS/IMAGEN_6.png",
+    "image7": "AFORES_LOGOS/IMAGEN_7.avif.png",
+    "image8": "AFORES_LOGOS/IMAGEN_8.webp",
+    "image9": "AFORES_LOGOS/IMAGEN_9.png",
+    "image10": "AFORES_LOGOS/IMAGEN_10.png",
+}
+
+RAZONES_CONFIANZA_RAW = {
+    "Trayectoria / marca conocida": """
+        años, anos, conocida, conocidas, popular, populares, reconocida, reconocidas,
+        escuchadas, marca, marcas, fama, trayectoria, conocida en mexico, establecida, establecidas,
+        establecido, establecidos, organizaciones, banco, bancos, fuertes
+    """,
+    "Uso personal / experiencia propia": """
+        uso actualmente, la tengo, tengo, manejo, he usado, mi afore, experiencia propia,
+        uso, actualmete manejo, actualmente manejo, experiencia
+    """,
+    "Seguridad / confianza": """
+        confianza, confiable, seguras, segura, seguridad, respaldo, real, reales,
+        estabilidad, solidas, sólida, formality, support, apoyarme, publicidad
+    """,
+    "Rendimiento / beneficios": """
+        rendimiento, rendimientos, ganancia, ganancias, mejor rendimiento, jubilacion,
+        buena jubilacion, beneficios, inversion, inversión, crecer el dinero, mejores, rendimiento,
+        rendimeinto
+    """,
+    "Recomendacion / referencias": """
+        comentarios, recomendacion, recomendaciones, recomendado, recomendada,
+        referencia, referencias, cercanos, personas, por comentarios, gusta, gustan, diseno, diseño
+    """,
+    "Respaldo institucional / gobierno": """
+        gobierno, respaldado por el gobierno, backed by the government, recursos,
+        estado, maestros, issste
+    """,
+    "Servicio / atencion": """
+        servicio, atencion, customer service, prompt customer service, informativa,
+        informativeness, ayuda, sucursales
+    """,
+    "Percepcion negativa de otras": """
+        no les tengo confianza, dueños, otras no, desconfianza, fraude, estafa
+    """,
 }
 
 
@@ -188,6 +290,25 @@ def limpiar_texto(texto):
     texto = re.sub(r"[^a-z0-9\s]", " ", texto)
     texto = re.sub(r"\s+", " ", texto).strip()
     return texto
+
+
+def clasificar_razon_confianza(texto):
+    texto_limpio = limpiar_texto(texto)
+    if not texto_limpio:
+        return "Sin razon"
+
+    categorias = preparar_categorias(RAZONES_CONFIANZA_RAW)
+    mejor_categoria = "Otras razones"
+    mejor_score = 0
+
+    for categoria, terminos in categorias.items():
+        coincidencias = obtener_coincidencias_limpias(texto_limpio, terminos)
+        score = puntuar_coincidencias(coincidencias)
+        if score > mejor_score:
+            mejor_categoria = categoria
+            mejor_score = score
+
+    return mejor_categoria
 
 
 def preparar_categorias(categorias_raw):
@@ -390,6 +511,84 @@ def analizar_encuesta(pregunta=None):
         "detalle_categorias": dict(detalle_categorias),
         "resultados": resultados,
     }
+
+
+def analizar_confianza_afores():
+    menciones = []
+    conteo_afores = Counter()
+    conteo_razones = Counter()
+    matriz_afores_razones = defaultdict(Counter)
+
+    for csv_path in CSV_PATHS:
+        with open(csv_path, "r", encoding="utf-8-sig", newline="") as archivo:
+            reader = csv.DictReader(archivo)
+
+            for row in reader:
+                seleccion = (row.get(PREGUNTA_CONFIANZA_AFORE) or "").strip()
+                razon_texto = (row.get(PREGUNTA_CONFIANZA_POR_QUE) or "").strip()
+                razon_categoria = clasificar_razon_confianza(razon_texto)
+
+                if not seleccion:
+                    continue
+
+                for item in seleccion.split("|"):
+                    if ":" in item:
+                        image_code, choice_code = item.split(":", 1)
+                    else:
+                        image_code, choice_code = item, ""
+
+                    afore_nombre = AFORE_MAP.get(image_code, image_code)
+                    ranking = None
+                    if choice_code.startswith("choice"):
+                        try:
+                            ranking = int(choice_code.replace("choice", ""))
+                        except ValueError:
+                            ranking = None
+
+                    conteo_afores[afore_nombre] += 1
+                    conteo_razones[razon_categoria] += 1
+                    matriz_afores_razones[afore_nombre][razon_categoria] += 1
+
+                    menciones.append(
+                        {
+                            "archivo_origen": Path(csv_path).name,
+                            "user_id": row.get("user id", ""),
+                            "participant_name": row.get("participant name", ""),
+                            "status": row.get("status", ""),
+                            "afore_codigo": image_code,
+                            "afore_nombre": afore_nombre,
+                            "logo_path": AFORE_LOGO_MAP.get(image_code, ""),
+                            "ranking_eleccion": ranking,
+                            "razon_texto": razon_texto,
+                            "razon_categoria": razon_categoria,
+                        }
+                    )
+
+    return {
+        "menciones": menciones,
+        "conteo_afores": conteo_afores,
+        "conteo_razones": conteo_razones,
+        "matriz_afores_razones": {
+            afore: dict(razones)
+            for afore, razones in matriz_afores_razones.items()
+        },
+        "afores_mapeadas": AFORE_MAP,
+        "logos": AFORE_LOGO_MAP,
+    }
+
+
+def analizar_descripcion_azteca():
+    contador = Counter()
+
+    for csv_path in CSV_PATHS:
+        with open(csv_path, "r", encoding="utf-8-sig", newline="") as archivo:
+            reader = csv.DictReader(archivo)
+            for row in reader:
+                texto = (row.get(PREGUNTA_DESCRIPCION_AZTECA) or "").strip()
+                if texto:
+                    contador.update(extraer_palabras(texto))
+
+    return contador
 
 
 def procesar_encuesta():

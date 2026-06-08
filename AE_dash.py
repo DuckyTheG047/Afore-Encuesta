@@ -1,10 +1,12 @@
 from collections import Counter
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import pandas as pd
+from PIL import Image
 import streamlit as st
 
-from AE_code import PREGUNTA, PREGUNTA_2, PREGUNTA_3, PREGUNTA_4, PREGUNTA_5, analizar_encuesta, extraer_palabras
+from AE_code import PREGUNTA, PREGUNTA_2, PREGUNTA_3, PREGUNTA_4, PREGUNTA_5, PREGUNTA_6, PREGUNTA_7, PREGUNTA_8, PREGUNTA_9, PREGUNTA_10, PREGUNTA_11, analizar_confianza_afores, analizar_descripcion_azteca, analizar_encuesta, extraer_palabras
 
 
 st.set_page_config(
@@ -12,6 +14,20 @@ st.set_page_config(
     page_icon="AE",
     layout="wide",
 )
+
+PREGUNTA_IMAGE_MAP = {
+    PREGUNTA: "IMAGENES_PREGUNTAS/pregunta_1.jpeg",
+    PREGUNTA_2: "IMAGENES_PREGUNTAS/pregunta_2.jpeg",
+    PREGUNTA_3: "IMAGENES_PREGUNTAS/pregunta_3.jpeg",
+    PREGUNTA_4: "IMAGENES_PREGUNTAS/com_1.jpeg",
+    PREGUNTA_5: "IMAGENES_PREGUNTAS/com_2.jpeg",
+    PREGUNTA_6: "IMAGENES_PREGUNTAS/com_3.jpeg",
+    PREGUNTA_7: "IMAGENES_PREGUNTAS/com_4.jpeg",
+    PREGUNTA_8: "IMAGENES_PREGUNTAS/com_5.jpeg",
+    PREGUNTA_9: "IMAGENES_PREGUNTAS/com_6.jpeg",
+    PREGUNTA_10: "IMAGENES_PREGUNTAS/com_7.jpeg",
+    PREGUNTA_11: "IMAGENES_PREGUNTAS/com_8.jpeg",
+}
 
 
 def build_top_words_df(counter: Counter, top_n: int = 15) -> pd.DataFrame:
@@ -201,6 +217,216 @@ def apply_base_styles() -> None:
     )
 
 
+def render_overview() -> None:
+    resumen = analizar_confianza_afores()
+    descripcion_azteca_counter = analizar_descripcion_azteca()
+    menciones_df = pd.DataFrame(resumen["menciones"])
+    afores_df = build_categories_df(resumen["conteo_afores"]).rename(
+        columns={"Categoria": "AFORE", "Respuestas": "Menciones"}
+    )
+    razones_df = build_categories_df(resumen["conteo_razones"]).rename(
+        columns={"Categoria": "Razon", "Respuestas": "Menciones"}
+    )
+
+    st.title("Overview")
+    st.caption("Resumen general del estudio de AFORES")
+
+    st.markdown(
+        """
+        <div style="
+            background: linear-gradient(135deg, #3a2a1f 0%, #725034 100%);
+            color: #fff8ef;
+            border-radius: 24px;
+            padding: 28px 28px;
+            margin-bottom: 22px;
+        ">
+            <div style="font-size:0.92rem; opacity:0.84; margin-bottom:10px;">Pagina principal</div>
+            <div style="font-size:1.8rem; font-weight:700; line-height:1.2; margin-bottom:10px;">
+                Panorama general sobre percepcion, comunicacion y conexion con AFORES
+            </div>
+            <div style="font-size:1rem; line-height:1.5; opacity:0.92;">
+                Esta pagina funcionara como punto de entrada para sintetizar los hallazgos mas relevantes
+                del estudio antes de entrar al detalle por anuncio y por pregunta.
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    total_participantes = int(menciones_df["user_id"].nunique()) if not menciones_df.empty else 0
+    total_afores = int(afores_df["AFORE"].nunique()) if not afores_df.empty else 0
+    afore_lider = afores_df.iloc[0]["AFORE"] if not afores_df.empty else "Sin dato"
+    razon_top = razones_df.iloc[0]["Razon"] if not razones_df.empty else "Sin dato"
+
+    top_cols = st.columns(4, gap="large")
+    with top_cols[0]:
+        render_metric_card("Participantes con respuesta", str(total_participantes))
+    with top_cols[1]:
+        render_metric_card("AFOREs mencionadas", str(total_afores))
+    with top_cols[2]:
+        render_metric_card("AFORE lider", str(afore_lider))
+    with top_cols[3]:
+        render_metric_card("Razon dominante", str(razon_top))
+
+    st.markdown("### Filtros de Confianza")
+    filtro_cols = st.columns([1, 1], gap="large")
+    with filtro_cols[0]:
+        afore_filtro = st.selectbox(
+            "Filtrar por AFORE",
+            ["Todas"] + sorted(menciones_df["afore_nombre"].dropna().unique().tolist()) if not menciones_df.empty else ["Todas"],
+            index=0,
+        )
+    with filtro_cols[1]:
+        razon_filtro = st.selectbox(
+            "Filtrar por motivo",
+            ["Todos"] + sorted(menciones_df["razon_categoria"].dropna().unique().tolist()) if not menciones_df.empty else ["Todos"],
+            index=0,
+        )
+
+    menciones_filtradas = menciones_df.copy()
+    if afore_filtro != "Todas":
+        menciones_filtradas = menciones_filtradas[menciones_filtradas["afore_nombre"] == afore_filtro]
+    if razon_filtro != "Todos":
+        menciones_filtradas = menciones_filtradas[menciones_filtradas["razon_categoria"] == razon_filtro]
+
+    afores_df = (
+        menciones_filtradas["afore_nombre"].value_counts()
+        .rename_axis("AFORE")
+        .reset_index(name="Menciones")
+    ) if not menciones_filtradas.empty else pd.DataFrame(columns=["AFORE", "Menciones"])
+    razones_df = (
+        menciones_filtradas["razon_categoria"].value_counts()
+        .rename_axis("Razon")
+        .reset_index(name="Menciones")
+    ) if not menciones_filtradas.empty else pd.DataFrame(columns=["Razon", "Menciones"])
+
+    st.markdown("### Ranking de Confianza en AFOREs")
+    rank_cols = st.columns([0.95, 1.05], gap="large")
+    with rank_cols[0]:
+        st.markdown("#### Top AFOREs")
+        if afores_df.empty:
+            st.info("No hay menciones de AFOREs disponibles.")
+        else:
+            for _, row in afores_df.head(6).iterrows():
+                logo_path = (
+                    menciones_df.loc[menciones_df["afore_nombre"] == row["AFORE"], "logo_path"]
+                    .dropna()
+                    .astype(str)
+                    .iloc[0]
+                )
+                card_cols = st.columns([0.22, 0.58, 0.20], gap="small")
+                with card_cols[0]:
+                    if logo_path:
+                        st.image(logo_path, use_container_width=True)
+                with card_cols[1]:
+                    st.markdown(f"**{row['AFORE']}**")
+                with card_cols[2]:
+                    st.metric("Menciones", int(row["Menciones"]))
+    with rank_cols[1]:
+        st.markdown("#### Distribucion de menciones")
+        if afores_df.empty:
+            st.info("No hay datos para graficar.")
+        else:
+            st.bar_chart(afores_df.set_index("AFORE")["Menciones"], height=360)
+            st.dataframe(afores_df, use_container_width=True, hide_index=True, height=260)
+
+    st.markdown("### Motivos de Confianza")
+    razones_cols = st.columns([1, 1], gap="large")
+    with razones_cols[0]:
+        st.markdown("#### Razones mas frecuentes")
+        if razones_df.empty:
+            st.info("No hay respuestas de motivos disponibles.")
+        else:
+            st.bar_chart(razones_df.set_index("Razon")["Menciones"], height=320)
+            st.dataframe(razones_df, use_container_width=True, hide_index=True, height=240)
+    with razones_cols[1]:
+        st.markdown("#### Nube de palabras de motivos")
+        if menciones_filtradas.empty:
+            st.info("No hay texto suficiente para construir la nube.")
+        else:
+            razones_counter = Counter()
+            for texto in menciones_filtradas["razon_texto"].fillna(""):
+                razones_counter.update(extraer_palabras(texto))
+            render_word_cloud(razones_counter, top_n=40)
+
+    st.markdown("### Cruce AFORE x Motivo")
+    if menciones_filtradas.empty:
+        st.info("No hay suficientes datos para el cruce.")
+    else:
+        matriz_df = (
+            menciones_filtradas.groupby(["afore_nombre", "razon_categoria"])
+            .size()
+            .reset_index(name="Menciones")
+        )
+        heatmap_df = (
+            matriz_df.pivot(index="afore_nombre", columns="razon_categoria", values="Menciones")
+            .fillna(0)
+            .astype(int)
+        )
+        cruces_cols = st.columns([1.15, 0.85], gap="large")
+        with cruces_cols[0]:
+            fig, ax = plt.subplots(figsize=(10, 5.8))
+            im = ax.imshow(heatmap_df.values, cmap="YlOrBr", aspect="auto")
+            ax.set_xticks(range(len(heatmap_df.columns)))
+            ax.set_xticklabels(heatmap_df.columns, rotation=35, ha="right")
+            ax.set_yticks(range(len(heatmap_df.index)))
+            ax.set_yticklabels(heatmap_df.index)
+            ax.set_xlabel("Motivo de confianza")
+            ax.set_ylabel("AFORE")
+            for i in range(len(heatmap_df.index)):
+                for j in range(len(heatmap_df.columns)):
+                    ax.text(j, i, int(heatmap_df.iloc[i, j]), ha="center", va="center", color="#2c2014", fontsize=8)
+            fig.colorbar(im, ax=ax, fraction=0.028, pad=0.02)
+            st.pyplot(fig, use_container_width=True)
+            plt.close(fig)
+        with cruces_cols[1]:
+            stacked = heatmap_df.copy()
+            fig2, ax2 = plt.subplots(figsize=(8, 5.8))
+            stacked.plot(kind="barh", stacked=True, ax=ax2)
+            ax2.set_xlabel("Menciones")
+            ax2.set_ylabel("AFORE")
+            fig2.tight_layout()
+            st.pyplot(fig2, use_container_width=True)
+            plt.close(fig2)
+
+    st.markdown("### Palabras para Describir Afore Azteca")
+    render_word_cloud(descripcion_azteca_counter, top_n=40)
+
+    st.markdown("### Evidencia de Respuestas")
+    if menciones_filtradas.empty:
+        st.info("No hay evidencia para mostrar.")
+    else:
+        evidencia_df = menciones_filtradas.rename(
+            columns={
+                "archivo_origen": "Archivo",
+                "user_id": "User ID",
+                "participant_name": "Participante",
+                "status": "Status",
+                "afore_nombre": "AFORE",
+                "ranking_eleccion": "Orden",
+                "razon_categoria": "Categoria de razon",
+                "razon_texto": "Texto original",
+            }
+        )
+        st.dataframe(
+            evidencia_df[
+                [
+                    "Archivo",
+                    "User ID",
+                    "Participante",
+                    "Status",
+                    "AFORE",
+                    "Orden",
+                    "Categoria de razon",
+                    "Texto original",
+                ]
+            ],
+            use_container_width=True,
+            hide_index=True,
+            height=360,
+        )
+
+
 def render_dashboard(
     analisis: dict,
     resultados_df: pd.DataFrame,
@@ -226,6 +452,25 @@ def render_dashboard(
         """,
         unsafe_allow_html=True,
     )
+
+    image_path = PREGUNTA_IMAGE_MAP.get(analisis["pregunta"])
+    if image_path and Path(image_path).exists():
+        st.markdown("### Imagen del Anuncio")
+        image_width_ratio = 0.46
+        try:
+            with Image.open(image_path) as img:
+                width, height = img.size
+            if height > width:
+                image_width_ratio = 0.30
+            elif height > width * 0.8:
+                image_width_ratio = 0.38
+        except Exception:
+            image_width_ratio = 0.46
+
+        side_ratio = (1 - image_width_ratio) / 2
+        image_cols = st.columns([side_ratio, image_width_ratio, side_ratio])
+        with image_cols[1]:
+            st.image(image_path, use_container_width=True)
 
     st.markdown("### Filtros")
     filter_cols = st.columns([1, 1, 1, 1.1], gap="large")
@@ -394,7 +639,7 @@ def render_dashboard(
             use_container_width=True,
         )
 
-    if analisis["pregunta"] in {PREGUNTA_4, PREGUNTA_5}:
+    if analisis["pregunta"] in {PREGUNTA_4, PREGUNTA_5, PREGUNTA_6, PREGUNTA_7, PREGUNTA_8, PREGUNTA_9, PREGUNTA_10, PREGUNTA_11}:
         st.markdown("### Conexion con el Anuncio")
         conexion_validas = filtrado.dropna(subset=["Conexion"]).copy()
         promedio_conexion = (
@@ -518,16 +763,26 @@ def main() -> None:
     pagina = st.sidebar.radio(
         "Paginas",
         [
+            "Overview",
             "Pregunta 1",
             "Pregunta 2",
             "Pregunta 3",
             "Comunicacion 1",
             "Comunicacion 2",
+            "Comunicacion 3",
+            "Comunicacion 4",
+            "Comunicacion 5",
+            "Comunicacion 6",
+            "Comunicacion 7",
+            "Comunicacion 8",
         ],
         index=0,
     )
 
-    if pagina == "Pregunta 1":
+    if pagina == "Overview":
+        render_overview()
+        return
+    elif pagina == "Pregunta 1":
         pregunta = PREGUNTA
     elif pagina == "Pregunta 2":
         pregunta = PREGUNTA_2
@@ -535,8 +790,20 @@ def main() -> None:
         pregunta = PREGUNTA_3
     elif pagina == "Comunicacion 1":
         pregunta = PREGUNTA_4
-    else:
+    elif pagina == "Comunicacion 2":
         pregunta = PREGUNTA_5
+    elif pagina == "Comunicacion 3":
+        pregunta = PREGUNTA_6
+    elif pagina == "Comunicacion 4":
+        pregunta = PREGUNTA_7
+    elif pagina == "Comunicacion 5":
+        pregunta = PREGUNTA_8
+    elif pagina == "Comunicacion 6":
+        pregunta = PREGUNTA_9
+    elif pagina == "Comunicacion 7":
+        pregunta = PREGUNTA_10
+    else:
+        pregunta = PREGUNTA_11
 
     analisis = analizar_encuesta(pregunta=pregunta)
     resultados_df = build_results_df(analisis["resultados"])
