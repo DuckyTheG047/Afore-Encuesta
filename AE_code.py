@@ -7,8 +7,9 @@ from pathlib import Path
 
 
 CSV_PATHS = [
-    "ARCHIVOS/online-a_04-06-2026 19-25-50-003091_V1.csv",
-    "ARCHIVOS/comunicacion_05-06-2026 15-52-49-807016.csv",
+    "ARCHIVOS/VF/Encuesta_1.csv",
+    "ARCHIVOS/VF/Encuesta_2.csv",
+    "ARCHIVOS/VF/Encuesta_3.csv",
 ]
 PREGUNTA = "¿Qué producto crees que promociona la imagen del siguiente anuncio?"
 PREGUNTA_2 = "¿Qué producto crees que promociona la imagen del siguiente anuncio? 1"
@@ -43,12 +44,12 @@ CATEGORIAS_PRODUCTO_RAW = {
     "Banco / financiero": """
         banco, bancos, tarjeta, tarjetas, tarjeta de credito, credito,
         financiera, dinero, rendimiento, rendimientos, servicio bancario, inversiones, inversion,
-        financiamiento, financiamientos
+        financiamiento, financiamientos, prestamo, prestamos
     """,
     "Auto / seguro / movilidad": """
         auto, autos, carro, carros, viaje, viajes, viajar, movilidad,
         seguro, seguros, seguro de auto, seguro de vida, vacaciones, automoviles,
-        venta automotriz, automotriz, coche, coches, transporte
+        venta automotriz, automotriz, coche, coches, transporte, vehículo, automóvil
     """,
     "Apuestas / casino / juegos": """
         apuestas, apuesta, casino, monedas, moneda, juegos, juego,
@@ -67,13 +68,15 @@ CATEGORIAS_PRODUCTO_RAW = {
     """,
     "Emocional / estilo de vida": """
         feliz, felicidad, sonrisa, sonriente, vida, persona, personas,
-        bienestar, bienestar personal, seguridad personal, confort, comfort, emoción, emociones
+        bienestar, bienestar personal, seguridad personal, confort, comfort, emoción, emociones,
+        descanso
     """,
     "Uso personal / Cuidado personal": """
         tintes, tintes, tinte para el cabello, tinte para el pelo, tinte para canas, máquina, 
         máquina cortadora, hombres, cuidado personal,
         tinte para barba, coloracion, productos de limpieza, productos de limpieza, 
-        limpieza del hogar, limpieza para el hogar, Máquina cortadora para hombres, minoxidil
+        limpieza del hogar, limpieza para el hogar, Máquina cortadora para hombres, minoxidil,
+        tele, teles, electrodoméstico, electrodomésticos, hogar, cuidado personal, cuidado del hogar
     """,
 }
 
@@ -82,44 +85,52 @@ CATEGORIAS_COMUNICACION_RAW = {
     "Ahorro / retiro / futuro": """
         ahorro, ahorrar, ahorros, retiro, jubilacion, pension, futuro,
         vejez, despues de trabajar, ahorro voluntario, tu vejez, afores, afore, dinero, ahorre,
-        expectativa, expectativas
+        expectativa, expectativas, afire, sueño, sueños, tranquilidad, bienestar, bienestar futuro, seguridad futura, calidad de vida futura,
+        elahorro, paz, posibilidades
     """,
     "Confianza / seguridad / respaldo": """
         confianza, confiable, seguridad, seguro, tranquilidad, respaldo,
         apoyo, protegido, protegida, estable, estabilidad, segura, calidad, bueno, confiado,
         sonrisa, felicidad, felicidades, inversión, inversion, mejor, claridad, atractivo,
         interesante, solvente, comprar, poder, oportunidad, empatico, empatia, alentador, confiables,
-        reconocidos, reconocidas
+        reconocidos, reconocidas, rendimiento, beneficios, beneficioso, beneficiosa, respaldo institucional, respaldo del gobierno,
+        sincero, informacion, que quiere, que quieren, familia, familiar, oportunidad, oportunidades,
+        agradable, seguimiento
     """,
     "Urgencia / conciencia / tiempo": """
         tiempo, tarde, temprano, ahora, hoy, urgencia, conciencia,
         no dejarlo al ultimo, antes, despues, aprovechar el tiempo, prevencion, prevision, esperar,
         plan, early age, small amounts, retire, retiro, consciencia, no tiene que estar uno estresado,
-        you can still make your contributions
+        you can still make your contributions, importante hacerlo pronto, puntualidad, nostalgia, al estar viejo
 
     """,
     "Facilidad / accesibilidad": """
         facil, facilidad, sencillo, sencilla, accesible, cambiar,
         cambiarte, ayuda, sucursales, atencion, acompanamiento, resolver dudas, accesible, 
-        accesibilidad, informativo, disponible, disponibilidad, accessibility, cualquier momento
+        accesibilidad, informativo, disponible, disponibilidad, accessibility, cualquier momento,
+        facil, faciles, ideal, cercania del producto, que puedo acudir rápido a cualquier sucursal,
+        opciones
 
     """,
     "Accion concreta / ahorro voluntario": """
         empezar, comenzar, aportaciones, aportacion, voluntario, voluntarias,
         pesos, invertir, meter dinero, ahorrar desde hoy, mover, mueva, mueva a,
-        cambies, cambiar, sugerencia, hacer, haz, haga, hazlo, ahora, esperar, future, cambio
+        cambies, cambiar, sugerencia, hacer, haz, haga, hazlo, ahora, esperar, future, cambio,
+        meterme a profuturo, curioso, curiosidad, trabajo
     """,
     "Bienestar / calidad de vida": """
         vivir bien, vida, disfrutar, viajar, libertad financiera, negocio,
         emprendimiento, tranquilidad futura, calidad de vida, productiva, feliz, yo de mas grande,
-        viaje, viajes, ventas, delicadeza, gusto, tranquilidad, tranquiidad, servicio
+        viaje, viajes, ventas, delicadeza, gusto, tranquilidad, tranquiidad, servicio, colgate, movilidad,
+        deseo
     """,
     "Percepcion negativa / confusion": """
         fraude, estafa, inseguridad, miedo, desconfianza, confusion, confuso,
         cuestionamientos, dudoso, complicado, confusión, angustia, ansiedad, preocupacion, no me gusto,
         desenfocado, desenfoque, malo, nada, mala, tristeza, duda, mucho texto, aburrido,
         malestar, estres, cansancio, indiferencia, indiferente, no termine, no se entiende, no entendi,
-        no esta claro, mal
+        no esta claro, mal, confunde, confuso, confusa, difícil visualizar, promocionar, informar, no confio,
+        desesperanza, no me gusta, no le entendi, no lo entendi, extraño, comunicacion, no pude, no lo pude
     """,
 }
 
@@ -149,6 +160,30 @@ MAPA_CONEXION_POR_PREGUNTA = {
     PREGUNTA_9: PREGUNTA_CONEXION_6,
     PREGUNTA_10: PREGUNTA_CONEXION_7,
     PREGUNTA_11: PREGUNTA_CONEXION_8,
+}
+
+MAPA_CATEGORIAS_ESPERADAS = {
+    PREGUNTA_7: [
+        "Facilidad / accesibilidad",
+        "Accion concreta / ahorro voluntario",
+        "Ahorro / retiro / futuro",
+    ],
+    PREGUNTA_8: [
+        "Accion concreta / ahorro voluntario",
+        "Ahorro / retiro / futuro",
+    ],
+    PREGUNTA_9: [
+        "Ahorro / retiro / futuro",
+        "Urgencia / conciencia / tiempo",
+    ],
+    PREGUNTA_10: [
+        "Confianza / seguridad / respaldo",
+        "Facilidad / accesibilidad",
+    ],
+    PREGUNTA_11: [
+        "Bienestar / calidad de vida",
+        "Ahorro / retiro / futuro",
+    ],
 }
 
 STOPWORDS = {
@@ -191,24 +226,27 @@ RAZONES_CONFIANZA_RAW = {
     "Trayectoria / marca conocida": """
         años, anos, conocida, conocidas, popular, populares, reconocida, reconocidas,
         escuchadas, marca, marcas, fama, trayectoria, conocida en mexico, establecida, establecidas,
-        establecido, establecidos, organizaciones, banco, bancos, fuertes
+        establecido, establecidos, organizaciones, banco, bancos, fuertes, renombre, institucion
     """,
     "Uso personal / experiencia propia": """
         uso actualmente, la tengo, tengo, manejo, he usado, mi afore, experiencia propia,
-        uso, actualmete manejo, actualmente manejo, experiencia
+        uso, actualmete manejo, actualmente manejo, experiencia,
+        experiencias, familiar, familiares
     """,
     "Seguridad / confianza": """
         confianza, confiable, seguras, segura, seguridad, respaldo, real, reales,
-        estabilidad, solidas, sólida, formality, support, apoyarme, publicidad
+        estabilidad, solidas, sólida, formality, support, apoyarme, publicidad, formalidad, seriedad,
+        seguro, seguros, seguras
     """,
     "Rendimiento / beneficios": """
         rendimiento, rendimientos, ganancia, ganancias, mejor rendimiento, jubilacion,
         buena jubilacion, beneficios, inversion, inversión, crecer el dinero, mejores, rendimiento,
-        rendimeinto
+        rendimeinto, mejor, mejores
     """,
     "Recomendacion / referencias": """
         comentarios, recomendacion, recomendaciones, recomendado, recomendada,
-        referencia, referencias, cercanos, personas, por comentarios, gusta, gustan, diseno, diseño
+        referencia, referencias, cercanos, personas, por comentarios, gusta, gustan, diseno, diseño,
+        recomendar, recomendaron, recomendacion, escucho, escuchado
     """,
     "Respaldo institucional / gobierno": """
         gobierno, respaldado por el gobierno, backed by the government, recursos,
@@ -216,10 +254,10 @@ RAZONES_CONFIANZA_RAW = {
     """,
     "Servicio / atencion": """
         servicio, atencion, customer service, prompt customer service, informativa,
-        informativeness, ayuda, sucursales
+        informativeness, ayuda, sucursales, atienden, atender
     """,
     "Percepcion negativa de otras": """
-        no les tengo confianza, dueños, otras no, desconfianza, fraude, estafa
+        no les tengo confianza, dueños, otras no, desconfianza, fraude, estafa, fallado
     """,
 }
 
@@ -585,6 +623,95 @@ def analizar_descripcion_azteca():
                     contador.update(extraer_palabras(texto))
 
     return contador
+
+
+def calcular_metricas_mensaje(resultados, pregunta):
+    categorias_esperadas = MAPA_CATEGORIAS_ESPERADAS.get(pregunta, [])
+    if not categorias_esperadas:
+        return {
+            "aplica": False,
+            "categorias_esperadas": [],
+            "total_con_respuesta": 0,
+            "reconocimiento_correcto": 0.0,
+            "tasa_confusion": 0.0,
+            "share_categoria_dominante": 0.0,
+            "indice_claridad": 0.0,
+            "conexion_promedio": None,
+            "conteo_alta_conexion": 0,
+            "conteo_baja_conexion": 0,
+        }
+
+    respuestas_con_texto = [
+        item
+        for item in resultados
+        if (item.get("respuesta") or "").strip()
+    ]
+    total_con_respuesta = len(respuestas_con_texto)
+
+    if total_con_respuesta == 0:
+        return {
+            "aplica": True,
+            "categorias_esperadas": categorias_esperadas,
+            "total_con_respuesta": 0,
+            "reconocimiento_correcto": 0.0,
+            "tasa_confusion": 0.0,
+            "share_categoria_dominante": 0.0,
+            "indice_claridad": 0.0,
+            "conexion_promedio": None,
+            "conteo_alta_conexion": 0,
+            "conteo_baja_conexion": 0,
+        }
+
+    correctas = 0
+    confusas = 0
+    conteo_categorias = Counter()
+    conexiones = []
+    conteo_alta_conexion = 0
+    conteo_baja_conexion = 0
+
+    for item in respuestas_con_texto:
+        categoria = item.get("categoria", "Sin categoria")
+        conteo_categorias[categoria] += 1
+
+        if categoria in categorias_esperadas:
+            correctas += 1
+        if categoria not in categorias_esperadas or categoria in {"Sin categoria", "Percepcion negativa / confusion"}:
+            confusas += 1
+
+        conexion = item.get("conexion")
+        if conexion is not None:
+            conexiones.append(conexion)
+            if conexion >= 4:
+                conteo_alta_conexion += 1
+            elif conexion <= 2:
+                conteo_baja_conexion += 1
+
+    reconocimiento_correcto = correctas / total_con_respuesta
+    tasa_confusion = confusas / total_con_respuesta
+    share_categoria_dominante = (
+        conteo_categorias.most_common(1)[0][1] / total_con_respuesta
+        if conteo_categorias
+        else 0.0
+    )
+    indice_claridad = (
+        (0.5 * reconocimiento_correcto)
+        + (0.3 * (1 - tasa_confusion))
+        + (0.2 * share_categoria_dominante)
+    ) * 100
+    conexion_promedio = sum(conexiones) / len(conexiones) if conexiones else None
+
+    return {
+        "aplica": True,
+        "categorias_esperadas": categorias_esperadas,
+        "total_con_respuesta": total_con_respuesta,
+        "reconocimiento_correcto": reconocimiento_correcto,
+        "tasa_confusion": tasa_confusion,
+        "share_categoria_dominante": share_categoria_dominante,
+        "indice_claridad": indice_claridad,
+        "conexion_promedio": conexion_promedio,
+        "conteo_alta_conexion": conteo_alta_conexion,
+        "conteo_baja_conexion": conteo_baja_conexion,
+    }
 
 
 def procesar_encuesta():

@@ -1,12 +1,13 @@
 from collections import Counter
 from pathlib import Path
+from typing import Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
 from PIL import Image
 import streamlit as st
 
-from AE_code import PREGUNTA, PREGUNTA_2, PREGUNTA_3, PREGUNTA_4, PREGUNTA_5, PREGUNTA_6, PREGUNTA_7, PREGUNTA_8, PREGUNTA_9, PREGUNTA_10, PREGUNTA_11, analizar_confianza_afores, analizar_descripcion_azteca, analizar_encuesta, extraer_palabras
+from AE_code import PREGUNTA, PREGUNTA_2, PREGUNTA_3, PREGUNTA_4, PREGUNTA_5, PREGUNTA_6, PREGUNTA_7, PREGUNTA_8, PREGUNTA_9, PREGUNTA_10, PREGUNTA_11, MAPA_CATEGORIAS_ESPERADAS, analizar_confianza_afores, analizar_descripcion_azteca, analizar_encuesta, calcular_metricas_mensaje, extraer_palabras
 
 
 st.set_page_config(
@@ -44,6 +45,35 @@ def build_top_words_counter_from_df(df: pd.DataFrame) -> Counter:
         if respuesta and respuesta != "[Sin respuesta]":
             counter.update(extraer_palabras(respuesta))
     return counter
+
+
+def build_connection_words_counter(df: pd.DataFrame, min_conexion: float = 4, max_conexion: Optional[float] = None) -> Counter:
+    counter = Counter()
+    if df.empty or "Conexion" not in df.columns:
+        return counter
+
+    subset = df.dropna(subset=["Conexion"]).copy()
+    subset = subset[subset["Conexion"] >= min_conexion]
+    if max_conexion is not None:
+        subset = subset[subset["Conexion"] <= max_conexion]
+
+    for respuesta in subset["Respuesta"]:
+        if respuesta and respuesta != "[Sin respuesta]":
+            counter.update(extraer_palabras(respuesta))
+    return counter
+
+
+def build_word_frequency_df(counter: Counter, total_counter: Counter, top_n: int = 12) -> pd.DataFrame:
+    rows = []
+    for palabra, frecuencia in counter.most_common(top_n):
+        rows.append(
+            {
+                "Palabra": palabra,
+                "Frecuencia alta conexion": frecuencia,
+                "Frecuencia total": total_counter.get(palabra, 0),
+            }
+        )
+    return pd.DataFrame(rows)
 
 
 def build_categories_df(counter_source) -> pd.DataFrame:
@@ -733,6 +763,90 @@ def render_dashboard(
                     ),
                     hide_index=True,
                     use_container_width=True,
+                )
+
+    if analisis["pregunta"] in MAPA_CATEGORIAS_ESPERADAS:
+        metricas_mensaje = calcular_metricas_mensaje(
+            [
+                {
+                    "respuesta": row["Respuesta"] if row["Respuesta"] != "[Sin respuesta]" else "",
+                    "categoria": row["Categoria"],
+                    "conexion": row["Conexion"],
+                }
+                for _, row in filtrado.iterrows()
+            ],
+            analisis["pregunta"],
+        )
+        reconocimiento_pct = f'{metricas_mensaje["reconocimiento_correcto"] * 100:.1f}%'
+        confusion_pct = f'{metricas_mensaje["tasa_confusion"] * 100:.1f}%'
+        claridad_score = f'{metricas_mensaje["indice_claridad"]:.1f}'
+        categorias_esperadas_texto = ", ".join(metricas_mensaje["categorias_esperadas"])
+
+        st.markdown("### KPIs de Claridad del Mensaje")
+        st.caption("Categorias principales esperadas: " + categorias_esperadas_texto)
+        clarity_cols = st.columns(4, gap="large")
+        with clarity_cols[0]:
+            render_metric_card("Reconocimiento correcto", reconocimiento_pct)
+        with clarity_cols[1]:
+            render_metric_card("Tasa de confusion", confusion_pct)
+        with clarity_cols[2]:
+            render_metric_card("Indice de claridad", claridad_score)
+        with clarity_cols[3]:
+            render_metric_card("Alta conexion (4-5)", str(metricas_mensaje["conteo_alta_conexion"]))
+
+        clarity_viz_cols = st.columns([0.9, 1.1], gap="large")
+        with clarity_viz_cols[0]:
+            st.markdown("#### Lectura del Mensaje")
+            lectura_df = pd.DataFrame(
+                [
+                    {"Segmento": "Reconocimiento correcto", "Porcentaje": metricas_mensaje["reconocimiento_correcto"] * 100},
+                    {"Segmento": "Confusion", "Porcentaje": metricas_mensaje["tasa_confusion"] * 100},
+                    {"Segmento": "Share categoria dominante", "Porcentaje": metricas_mensaje["share_categoria_dominante"] * 100},
+                ]
+            )
+            st.bar_chart(lectura_df.set_index("Segmento")["Porcentaje"], height=300)
+            st.dataframe(lectura_df.round(1), use_container_width=True, hide_index=True, height=180)
+
+        with clarity_viz_cols[1]:
+            st.markdown("#### Reconocimiento vs Confusion")
+            restante = max(
+                0.0,
+                100
+                - (metricas_mensaje["reconocimiento_correcto"] * 100)
+                - (metricas_mensaje["tasa_confusion"] * 100),
+            )
+            fig_kpi, ax_kpi = plt.subplots(figsize=(6.2, 4.2))
+            ax_kpi.pie(
+                [
+                    metricas_mensaje["reconocimiento_correcto"] * 100,
+                    metricas_mensaje["tasa_confusion"] * 100,
+                    restante,
+                ],
+                labels=["Correcto", "Confusion", "Resto"],
+                autopct="%1.0f%%",
+                startangle=90,
+                colors=["#a8732e", "#7f6042", "#e7d7c1"],
+                textprops={"fontsize": 9},
+            )
+            ax_kpi.axis("equal")
+            st.pyplot(fig_kpi, use_container_width=True)
+            plt.close(fig_kpi)
+
+        st.markdown("### Palabras Asociadas a Alta Conexion")
+        alta_conexion_counter = build_connection_words_counter(filtrado, min_conexion=4)
+        palabras_cols = st.columns([1.05, 0.95], gap="large")
+        with palabras_cols[0]:
+            render_word_cloud(alta_conexion_counter, top_n=35)
+        with palabras_cols[1]:
+            palabras_alta_df = build_word_frequency_df(alta_conexion_counter, top_words_filtrado_counter, top_n=12)
+            if palabras_alta_df.empty:
+                st.info("No hay suficientes respuestas con alta conexion para construir esta vista.")
+            else:
+                st.dataframe(
+                    palabras_alta_df,
+                    use_container_width=True,
+                    hide_index=True,
+                    height=300,
                 )
 
     st.markdown("### Tabla Base Filtrada")
