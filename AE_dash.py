@@ -1,6 +1,6 @@
 from collections import Counter
 from pathlib import Path
-from typing import Optional
+from typing import Dict, List, Optional
 
 import matplotlib.pyplot as plt
 import pandas as pd
@@ -89,7 +89,7 @@ def build_categories_df(counter_source) -> pd.DataFrame:
     return pd.DataFrame(rows)
 
 
-def build_results_df(resultados: list[dict]) -> pd.DataFrame:
+def build_results_df(resultados: List[Dict]) -> pd.DataFrame:
     df = pd.DataFrame(resultados)
     if df.empty:
         return df
