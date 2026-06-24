@@ -276,7 +276,7 @@ def calcular_edad(fecha_nacimiento):
     edad = hoy.year - nacimiento.year
     if (hoy.month, hoy.day) < (nacimiento.month, nacimiento.day):
         edad -= 1
-    return edad
+    return edad if 0 < edad < 100 else None
 
 
 def normalizar_genero(row):
@@ -299,7 +299,8 @@ def normalizar_genero(row):
 def normalizar_edad(row):
     edad_reclutamiento = (row.get("recruit: age") or "").strip()
     if edad_reclutamiento.isdigit():
-        return int(edad_reclutamiento)
+        edad = int(edad_reclutamiento)
+        return edad if 0 < edad < 100 else None
 
     return calcular_edad(row.get("¿Cuál es tu fecha de nacimiento?", ""))
 

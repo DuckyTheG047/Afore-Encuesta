@@ -241,6 +241,43 @@ def apply_base_styles() -> None:
             overflow: hidden;
             border: 1px solid #e4d4bd;
         }
+        .filters-shell {
+            background: linear-gradient(135deg, rgba(255, 248, 239, 0.95) 0%, rgba(246, 235, 221, 0.95) 100%);
+            border: 1px solid #e0cfb8;
+            border-radius: 22px;
+            padding: 18px 18px 8px 18px;
+            margin-bottom: 16px;
+            box-shadow: 0 10px 24px rgba(90, 64, 35, 0.08);
+        }
+        .filters-kicker {
+            font-size: 0.78rem;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: #8a6338;
+            margin-bottom: 0.35rem;
+            font-weight: 700;
+        }
+        .filters-title {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #2c2014;
+            margin-bottom: 0.2rem;
+        }
+        .filters-subtitle {
+            font-size: 0.92rem;
+            color: #6f5336;
+            margin-bottom: 0.9rem;
+        }
+        div[data-testid="stSelectbox"] > label,
+        div[data-testid="stSlider"] > label {
+            font-weight: 600;
+            color: #4c3723;
+        }
+        div[data-testid="stSelectbox"] [data-baseweb="select"] > div,
+        div[data-testid="stSlider"] > div[data-baseweb="slider"] {
+            background: rgba(255, 253, 248, 0.88);
+            border-radius: 14px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
@@ -502,36 +539,87 @@ def render_dashboard(
         with image_cols[1]:
             st.image(image_path, use_container_width=True)
 
-    st.markdown("### Filtros")
-    filter_cols = st.columns([1, 1, 1, 1.1], gap="large")
-    with filter_cols[0]:
-        categoria_seleccionada = st.selectbox(
-            "Categoria",
-            ["Todas"] + resultados_df["Categoria"].drop_duplicates().tolist(),
-            index=0,
-        )
-    with filter_cols[1]:
-        score_minimo = int(
-            st.slider(
-                "Score minimo",
-                min_value=int(resultados_df["Score"].min()) if not resultados_df.empty else 0,
-                max_value=int(resultados_df["Score"].max()) if not resultados_df.empty else 0,
-                value=int(resultados_df["Score"].min()) if not resultados_df.empty else 0,
-                step=1,
+    edades_disponibles = resultados_df["Edad"].dropna()
+    hay_edades = not edades_disponibles.empty
+    edad_min_df = int(edades_disponibles.min()) if hay_edades else 0
+    edad_max_df = int(edades_disponibles.max()) if hay_edades else 0
+
+    st.markdown(
+        """
+        <div class="filters-shell">
+            <div class="filters-kicker">Explora la pregunta</div>
+            <div class="filters-title">Filtros del analisis</div>
+            <div class="filters-subtitle">Ajusta los segmentos para recalcular KPIs, categorias, conexion y tablas en tiempo real.</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.container():
+        filter_cols_top = st.columns([1.2, 1.05, 1, 1], gap="large")
+        with filter_cols_top[0]:
+            categoria_seleccionada = st.selectbox(
+                "Categoria",
+                ["Todas"] + resultados_df["Categoria"].drop_duplicates().tolist(),
+                index=0,
             )
-        )
-    with filter_cols[2]:
-        genero_seleccionado = st.selectbox(
-            "Genero",
-            ["Todos"] + resultados_df["Genero"].drop_duplicates().tolist(),
-            index=0,
-        )
-    with filter_cols[3]:
-        status_seleccionado = st.selectbox(
-            "Status",
-            ["Todos"] + resultados_df["Status"].drop_duplicates().tolist(),
-            index=0,
-        )
+        with filter_cols_top[1]:
+            score_minimo = int(
+                st.slider(
+                    "Score minimo",
+                    min_value=int(resultados_df["Score"].min()) if not resultados_df.empty else 0,
+                    max_value=int(resultados_df["Score"].max()) if not resultados_df.empty else 0,
+                    value=int(resultados_df["Score"].min()) if not resultados_df.empty else 0,
+                    step=1,
+                )
+            )
+        with filter_cols_top[2]:
+            genero_seleccionado = st.selectbox(
+                "Genero",
+                ["Todos"] + resultados_df["Genero"].drop_duplicates().tolist(),
+                index=0,
+            )
+        with filter_cols_top[3]:
+            status_seleccionado = st.selectbox(
+                "Status",
+                ["Todos"] + resultados_df["Status"].drop_duplicates().tolist(),
+                index=0,
+            )
+
+        filter_cols_bottom = st.columns([1.4, 2.6], gap="large")
+        with filter_cols_bottom[0]:
+            if hay_edades:
+                edad_rango = st.slider(
+                    "Rango de edades",
+                    min_value=edad_min_df,
+                    max_value=edad_max_df,
+                    value=(edad_min_df, edad_max_df),
+                    step=1,
+                )
+            else:
+                st.caption("Rango de edades")
+                st.caption("Sin datos")
+                edad_rango = None
+        with filter_cols_bottom[1]:
+            if hay_edades:
+                st.markdown(
+                    f"""
+                    <div style="
+                        background: rgba(255, 253, 248, 0.88);
+                        border: 1px dashed #d6c1a6;
+                        border-radius: 16px;
+                        padding: 14px 16px;
+                        margin-top: 1.7rem;
+                        color: #5f452b;
+                        font-size: 0.95rem;
+                    ">
+                        <strong>Edades activas:</strong> {edad_rango[0]} a {edad_rango[1]} años
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+            else:
+                st.empty()
 
     filtrado = resultados_df.copy()
     if categoria_seleccionada != "Todas":
@@ -539,6 +627,11 @@ def render_dashboard(
     filtrado = filtrado[filtrado["Score"] >= score_minimo]
     if genero_seleccionado != "Todos":
         filtrado = filtrado[filtrado["Genero"] == genero_seleccionado]
+    if edad_rango is not None:
+        filtrado = filtrado[
+            filtrado["Edad"].notna()
+            & filtrado["Edad"].between(edad_rango[0], edad_rango[1])
+        ]
     if status_seleccionado != "Todos":
         filtrado = filtrado[filtrado["Status"] == status_seleccionado]
 
